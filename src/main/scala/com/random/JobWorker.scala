@@ -1,6 +1,7 @@
 
-import scala.concurrent.duration._
+package com.random
 
+import scala.concurrent.duration._
 import akka.actor._
 import java.io.FileReader
 import scala.concurrent.Future
@@ -10,7 +11,7 @@ object JobWorker {
   def props = Props(new JobWorker)
 
   case class Work(master: ActorRef)
-  case class ParsePgnTask(pgnFiles: Seq[String], master: ActorRef)
+  case class ParsePgnTask(pgnFiles: Seq[String])
   case class GetMove(prevMoves: Vector[String], master: ActorRef)
   case object ParsePgnDepleted
 }
@@ -42,14 +43,14 @@ class JobWorker extends Actor
     case ReceiveTimeout =>
       master ! NextTask
 
-    case ParsePgnTask(pgnFiles, master) =>
-      log.info(s"Parsing $pgnFiles")
+    case ParsePgnTask(pgnFiles) =>
+      log.info(s"Parsing $pgnFiles, master: $master")
 
       pipe(processParsePgnTask(pgnFiles) map { result =>
       processed = processed + 1
       log.info(s"Processed $pgnFiles, asking for more work")
       master ! NextTask
-      TaskResult(result)
+      TaskResult(result, self)
     }) to master
 
     case ParsePgnDepleted =>
@@ -57,7 +58,7 @@ class JobWorker extends Actor
       setReceiveTimeout(Duration.Undefined)
 
     case GetMove(prevMoves, master) =>
-      log.info(s"Finding next move for moves: $prevMoves")
+      log.info(s"Finding next move")
       val bestMove = tree.getMove(prevMoves)
       log.info(s"Found best move: $bestMove")
       master ! Move(bestMove)

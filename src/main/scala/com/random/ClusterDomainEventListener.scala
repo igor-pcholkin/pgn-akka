@@ -1,7 +1,9 @@
-import akka.actor.{ActorLogging, Actor}
+package com.random
 
+import akka.actor.{ActorLogging, Actor}
 import akka.cluster.{MemberStatus, Cluster}
 import akka.cluster.ClusterEvent._
+import akka.cluster.ClusterEvent.ClusterDomainEvent
 
 class ClusterDomainEventListener extends Actor
                     with ActorLogging {

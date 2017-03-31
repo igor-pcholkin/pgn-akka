@@ -1,8 +1,11 @@
+package com.random
+
 import com.typesafe.config.ConfigFactory
 import akka.actor.{Props, ActorSystem}
 import akka.cluster.Cluster
-
 import JobReceptionist.JobRequestStartGame
+import akka.actor.actorRef2Scala
+import akka.actor.ActorLogging
 
 object Main extends App {
   val config = ConfigFactory.load()

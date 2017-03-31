@@ -1,11 +1,15 @@
+package com.random
+
+import scala.util.Try
+import scala.util.Failure
+import scala.util.Success
+
 object Result extends Enumeration {
   type Result = Value
   val WWIN, BWIN, DRAW = Value
 }
+
 import Result._
-import scala.util.Try
-import scala.util.Failure
-import scala.util.Success
 
 case class Meta(result: Result, eloWhite: Int, eloBlack:Int)
 case class Game(meta: Meta, moves: List[String])

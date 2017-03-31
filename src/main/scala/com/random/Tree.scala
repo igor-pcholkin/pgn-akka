@@ -1,3 +1,4 @@
+package com.random
 
 class Tree(rootNode: Node) {
   def add(game: Game): Tree = new Tree(rootNode.add(game.moves, game.meta))

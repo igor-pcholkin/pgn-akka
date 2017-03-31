@@ -23,6 +23,6 @@ libraryDependencies ++= {
 }
 
 // Assembly settings
-mainClass in Global := Some("Main")
+mainClass in Global := Some("com.random.Main")
 
 assemblyJarName in assembly := "pgn-akka.jar"

@@ -1,11 +1,12 @@
 
 
-import scala.concurrent.duration._
+package com.random
 
+import scala.concurrent.duration._
 import akka.actor._
 import akka.cluster.routing._
 import akka.routing._
-
+import scala.Vector
 
 object JobMasterAskMove {
   def props(receptionist: ActorRef, workers: Set[ActorRef]) = Props(classOf[JobMasterAskMove], receptionist, workers)
@@ -16,9 +17,9 @@ object JobMasterAskMove {
 
 class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) extends Actor
                    with ActorLogging {
-  import JobReceptionist._
-  import JobMasterAskMove._
-  import JobWorker._
+  import com.random.JobReceptionist._
+  import com.random.JobMasterAskMove._
+  import com.random.JobWorker._
   import context._
 
   var moves: Vector[String] = Vector()
@@ -31,7 +32,6 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
   def receive = {
 
     case JobAskMove(nextMove) =>
-      log.info(s"new move: $nextMove")
       moves = moves :+ nextMove
       log.info(s"moves: $moves")
       context.setReceiveTimeout(60 seconds)

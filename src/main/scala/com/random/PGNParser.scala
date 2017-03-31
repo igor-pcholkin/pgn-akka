@@ -1,3 +1,5 @@
+package com.random
+
 import scala.util.parsing.combinator.JavaTokenParsers
 
 object PGNParser extends JavaTokenParsers {

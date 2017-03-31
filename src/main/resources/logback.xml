@@ -8,6 +8,7 @@
         </encoder>
     </appender>
 
+    <logger name="com.random" level="INFO" />
     <logger name="akka" level="ERROR" />
     <logger name="spray" level="INFO" />
 

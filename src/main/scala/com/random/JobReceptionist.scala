@@ -1,8 +1,7 @@
-import java.net.URLEncoder
+package com.random
 
 import akka.actor._
 import akka.actor.Terminated
-
 
 object JobReceptionist {
   def props = Props(new JobReceptionist)

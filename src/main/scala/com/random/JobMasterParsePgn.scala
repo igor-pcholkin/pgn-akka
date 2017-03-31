@@ -1,11 +1,13 @@
 
 
-import scala.concurrent.duration._
+package com.random
 
+import scala.concurrent.duration._
 import akka.actor._
 import akka.cluster.routing._
 import akka.routing._
-
+import scala.util.Random
+import scala.Vector
 
 object JobMasterParsePgn {
   def props = Props(new JobMasterParsePgn)
@@ -13,7 +15,7 @@ object JobMasterParsePgn {
   case class Enlist(worker: ActorRef)
 
   case object NextTask
-  case class TaskResult(result: String)
+  case class TaskResult(result: String, sender: ActorRef)
 
 }
 
@@ -40,9 +42,9 @@ class JobMasterParsePgn extends Actor
 
   def idle: Receive = {
     case JobParsePgn =>
-      pgnFilesWorkParts = PgnFiles.fileNames.toList
+      pgnFilesWorkParts = Random.shuffle(PgnFiles.fileNames.toList)
       val cancellable = context.system.scheduler.schedule(0 millis, 1000 millis, router, Work(self))
-      context.setReceiveTimeout(60 seconds)
+      context.setReceiveTimeout(10 seconds)
       become(working(sender, cancellable))
   }
 
@@ -50,33 +52,42 @@ class JobMasterParsePgn extends Actor
               cancellable: Cancellable): Receive = {
     case Enlist(worker) =>
       watch(worker)
-      workers  = workers + worker
 
     case NextTask =>
       if (pgnFilesWorkParts.isEmpty) {
         sender() ! ParsePgnDepleted
       } else {
-        sender() ! ParsePgnTask(Seq(pgnFilesWorkParts.head), self)
+        sender() ! ParsePgnTask(Seq(pgnFilesWorkParts.head))
         workGiven = workGiven + 1
         pgnFilesWorkParts = pgnFilesWorkParts.tail
       }
 
-    case TaskResult(result) =>
+    case TaskResult(result, worker) =>
       intermediateResult = intermediateResult :+ result
       workReceived = workReceived + 1
+      workers = workers + worker
+      log.info(s"Received parsing result from ${worker}")
 
       if (pgnFilesWorkParts.isEmpty && workGiven == workReceived) {
-        cancellable.cancel()
-        setReceiveTimeout(Duration.Undefined)
-        receptionist ! JobParsePgnDone(workers)
+        completeParsing(receptionist, cancellable)
       }
 
     case ReceiveTimeout =>
       if (workers.isEmpty) {
         log.info(s"No workers responded in time. Cancelling parse pgn job.")
         stop(self)
-      } else setReceiveTimeout(Duration.Undefined)
+      } else {
+        completeParsing(receptionist, cancellable)
+      }
 
+  }
+
+  def completeParsing(receptionist: ActorRef,
+              cancellable: Cancellable) {
+    cancellable.cancel()
+    setReceiveTimeout(Duration.Undefined)
+    receptionist ! JobParsePgnDone(workers)
+    log.info(s"Parsing complete.")
   }
 
 }
@@ -85,8 +96,8 @@ class JobMasterParsePgn extends Actor
 trait CreateWorkerRouter { this: Actor =>
   def createWorkerRouter: ActorRef = {
     context.actorOf(
-      ClusterRouterPool(BroadcastPool(10), ClusterRouterPoolSettings(
-        totalInstances = 100, maxInstancesPerNode = 1,
+      ClusterRouterPool(BroadcastPool(20), ClusterRouterPoolSettings(
+        totalInstances = 20, maxInstancesPerNode = 5,
         allowLocalRoutees = false, useRole = Some("worker"))).props(Props[JobWorker]),
       name = "worker-router")
   }

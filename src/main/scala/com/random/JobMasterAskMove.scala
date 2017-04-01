@@ -29,8 +29,14 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
 
   def receive = {
 
-    case JobAskMove(nextMove) =>
-      moves = moves :+ nextMove
+    case JobAskMove(mayBeNextMove, newGame) =>
+      if (newGame) {
+        moves = Vector()
+      }
+      mayBeNextMove match {
+        case Some(nextMove) => moves = moves :+ nextMove
+        case None => //
+      }
       log.info(s"moves: $moves")
       context.setReceiveTimeout(60 seconds)
       workReceived = 0

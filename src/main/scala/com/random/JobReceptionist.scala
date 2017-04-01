@@ -13,9 +13,10 @@ object JobReceptionist {
 
   abstract class Job(val name: String)
   case object JobParsePgn extends Job("parsePgn")
-  case class JobAskMove(nextMove: String) extends Job("askMove")
+  case class JobAskMove(nextMove: Option[String], newGame: Boolean) extends Job("askMove")
 
-  case object AskMove
+  case class AskMove(newGame: Boolean)
+  case object StartNewGame
 }
 
 class JobReceptionist extends Actor
@@ -44,19 +45,34 @@ class JobReceptionist extends Actor
     case JobParsePgnDone(workers) =>
       log.info(s"Parse pgn Job complete, starting game")
       askMoveMaster = createMasterAskMove(self, workers)
-      self ! AskMove
+      self ! StartNewGame
 
     case Terminated(jobMaster) =>
       log.error(s"Job Master ${jobMaster.path.name} terminated before finishing job.")
 
-    case AskMove =>
+    case StartNewGame =>
+      println("New Game. (W/B)?")
+      val wb = scala.io.StdIn.readLine()
+      if (wb.toUpperCase == "W") {
+        self ! AskMove(true)
+      } else {
+        askMoveMaster ! JobAskMove(None, true)
+      }
+
+    case AskMove(newGame) =>
       println("Move?")
       val move = scala.io.StdIn.readLine()
-      askMoveMaster ! JobAskMove(move)
+      askMoveMaster ! JobAskMove(Some(move), newGame)
 
     case JobAskMoveDone(move) =>
       println(move)
-      self ! AskMove
+      if (move == "DRAW?") {
+        self ! StartNewGame
+      } else {
+        self ! AskMove(false)
+      }
+
+
   }
 }
 

@@ -25,6 +25,7 @@ class JobWorker extends Actor
 
   var processed = 0
   var tree = Tree.create()
+  var readGames = 0
 
   def receive = idle
 
@@ -55,25 +56,27 @@ class JobWorker extends Actor
 
     case ParsePgnDepleted =>
       log.info(s"Parsing of pgn done, idle")
+      println(s"Added $readGames games")
       setReceiveTimeout(Duration.Undefined)
 
     case GetMove(prevMoves, master) =>
       log.info(s"Finding next move")
       val bestMove = tree.getMove(prevMoves)
-      log.info(s"Found best move: $bestMove")
-      master ! Move(bestMove)
+      println(s"Found best move: $bestMove")
+      master ! bestMove
   }
 
   def processParsePgnTask(fileNames: Seq[String]): Future[String] = Future {
-    val games = fileNames.foldLeft(Seq[Game]()) { (allGames, fileName) =>
+    fileNames foreach { fileName =>
       println(s"Reading $fileName")
-      PGNParser.parseAll(PGNParser.pgnfile, new FileReader(PgnFiles.baseDir + fileName + ".pgn")) match {
-        case PGNParser.Success(games, _) => allGames ++ games
-        case ex @ _                      => println(ex); allGames
+      val games = PGNParser.parseAll(PGNParser.pgnfile, new FileReader(PgnFiles.baseDir + fileName + ".pgn")) match {
+        case PGNParser.Success(games, _) => games
+        case ex @ _                      => println(ex); Nil
       }
-    }
-    tree = games.foldLeft(tree) { (tree, game) =>
-      tree.add(game)
+      games foreach { game =>
+        tree = tree.add(game, fileName)
+      }
+      readGames += games.length
     }
 
     "DONE"

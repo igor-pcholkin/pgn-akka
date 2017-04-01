@@ -11,8 +11,6 @@ import scala.Vector
 object JobMasterAskMove {
   def props(receptionist: ActorRef, workers: Set[ActorRef]) = Props(classOf[JobMasterAskMove], receptionist, workers)
 
-  case class Move(move: String)
-
 }
 
 class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) extends Actor
@@ -40,8 +38,8 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
       workers foreach { worker =>
         worker ! GetMove(moves, self)
       }
-    case Move(move) =>
-      log.info(s"Received move candidate: $move")
+    case Move(move, meta) =>
+      log.info(s"Received move candidate: $move, $meta")
       if (move != "DRAW?") {
         nextMoveCandidates = nextMoveCandidates + move
       }

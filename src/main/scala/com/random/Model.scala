@@ -11,8 +11,10 @@ object Result extends Enumeration {
 
 import Result._
 
-case class Meta(result: Result, eloWhite: Int, eloBlack:Int)
+case class Meta(result: Result, white: String, black: String, eloWhite: Int, eloBlack:Int, chessBase: Option[String] = None)
 case class Game(meta: Meta, moves: List[String])
+case class Move(move: String, meta: Option[Meta] = None)
+
 
 object Meta {
   def create(header: Map[String, String]) = {
@@ -23,7 +25,9 @@ object Meta {
     }
     val eloWhite = getElo(header, "WhiteElo")
     val eloBlack = getElo(header, "BlackElo")
-    Meta(result, eloWhite, eloBlack)
+    val white = header.getOrElse("White", "")
+    val black = header.getOrElse("Black", "")
+    Meta(result, white, black, eloWhite, eloBlack)
   }
 
   def getElo(header: Map[String, String], key: String) = {

@@ -1,9 +1,12 @@
 package com.random
 
 class Tree(rootNode: Node) {
-  def add(game: Game): Tree = new Tree(rootNode.add(game.moves, game.meta))
+  def add(game: Game, chessBaseName: String): Tree = {
+    val meta = game.meta.copy(chessBase = Some(chessBaseName))
+    new Tree(rootNode.add(game.moves, meta))
+  }
   def print = rootNode.print
-  def getMove(prevMoves: Vector[String]) = rootNode.getMove(prevMoves)
+  def getMove(prevMoves: Vector[String]): Move = rootNode.getMove(prevMoves)
 }
 
 object Tree {
@@ -55,25 +58,28 @@ class Node(val move: Option[String], val meta: Option[Meta], val subtrees: List[
     }
   }
 
-  def getMove(prevMoves: Vector[String]): String = {
+  def getMove(prevMoves: Vector[String]): Move = {
+    val drawMove = Move("DRAW?")
     if (prevMoves.length > 0) {
       val move = prevMoves(0)
       val rest = prevMoves.tail
       subtrees.find(node => node.move == Some(move)) match {
-        case Some(foundMove) =>
-          foundMove.getMove(rest)
-        case _ => "DRAW?"
+        case Some(foundMoveNode) =>
+          foundMoveNode.getMove(rest)
+        case _ => drawMove
       }
     } else {
       val candidates = subtrees.sortWith((node1, node2) => node1.numSubNodes > node2.numSubNodes)
       println("Candidates: " + (candidates.map { node =>
         node.move + " (" + node.numSubNodes.toString + " )"
       }).mkString(","))
-      val bestMove = candidates.headOption
-      println("Next Expected moves: " + (bestMove.map(_.subtrees).getOrElse(Nil).map { node =>
+      val mayBeBestMoveNode = candidates.headOption
+      println("Next Expected moves: " + (mayBeBestMoveNode.map(_.subtrees).getOrElse(Nil).map { node =>
         node.move + " (" + node.numSubNodes.toString + " )"
       }).mkString(","))
-      bestMove.map(_.move.getOrElse("")).getOrElse("DRAW?")
+      (mayBeBestMoveNode.map { bestMoveNode =>
+       Move(bestMoveNode.move.getOrElse(""), bestMoveNode.meta)
+      }).getOrElse(drawMove)
     }
   }
 }

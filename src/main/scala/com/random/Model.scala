@@ -32,7 +32,7 @@ object Meta {
 
   def getElo(header: Map[String, String], key: String) = {
     Try {
-      header.getOrElse("WhiteElo", "2000").toInt
+      header.getOrElse(key, "2000").toInt
     } match {
       case Success(value) => value
       case Failure(ex) => 2000

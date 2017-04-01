@@ -22,7 +22,7 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
 
   var moves: Vector[String] = Vector()
   var workReceived = 0
-  var nextMoveCandidates = Set[String]()
+  var nextMoveCandidates = Set[Move]()
 
   override def supervisorStrategy: SupervisorStrategy =
     SupervisorStrategy.stoppingStrategy
@@ -44,19 +44,28 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
       workers foreach { worker =>
         worker ! GetMove(moves, self)
       }
-    case Move(move, meta) =>
+
+    case m@Move(move, meta, rank, mayBeGameRoute) =>
       log.info(s"Received move candidate: $move, $meta")
       if (move != "DRAW?") {
-        nextMoveCandidates = nextMoveCandidates + move
+        nextMoveCandidates = nextMoveCandidates + m
       }
       workReceived = workReceived + 1
 
       if (workReceived == workers.size) {
         setReceiveTimeout(Duration.Undefined)
-        val bestMove = nextMoveCandidates.headOption.getOrElse("DRAW?")
+        val mayBeBestMove = if (moves.length <= 4)
+          nextMoveCandidates.headOption
+        else
+          nextMoveCandidates.toSeq.sortBy(_.rank).lastOption
+        val bestMove = mayBeBestMove.getOrElse(Move("DRAW?"))
         log.info(s"Choosing move: $bestMove")
-        moves = moves :+ bestMove
-        receptionist ! JobAskMoveDone(bestMove)
+        bestMove.gameRoute match {
+          case Some(route) => moves = route
+          case None =>        moves = moves :+ bestMove.move
+        }
+
+        receptionist ! JobAskMoveDone(bestMove.move)
       }
 
     case ReceiveTimeout =>

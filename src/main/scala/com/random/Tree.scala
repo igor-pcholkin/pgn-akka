@@ -18,7 +18,7 @@ object Tree {
     moves match {
       case h :: rest =>
         val subtree = createSubTree(rest, meta)
-        List(new Node(Some(h), Some(meta), subtree, nodecount(subtree)))
+        List(new Node(Some(h), None, subtree, nodecount(subtree)))
       case Nil => Nil
     }
   }
@@ -53,7 +53,7 @@ class Node(val move: Option[String], val meta: Option[Meta], val subtrees: List[
           case Some(foundMoveNode) => foundMoveNode.add(restOfNewMoves, newMeta)
           case None                => Tree.createSubTree(newMoves, newMeta).head
         }) :: restOfExistingMoves
-        new Node(move, meta, newSubtrees, Tree.nodecount(newSubtrees))
+        new Node(move, None, newSubtrees, Tree.nodecount(newSubtrees))
       case Nil => this
     }
   }
@@ -78,7 +78,7 @@ class Node(val move: Option[String], val meta: Option[Meta], val subtrees: List[
         node.move + " (" + node.numSubNodes.toString + " )"
       }).mkString(","))
       (mayBeBestMoveNode.map { bestMoveNode =>
-       Move(bestMoveNode.move.getOrElse(""), bestMoveNode.meta)
+       Move(bestMoveNode.move.getOrElse(""), bestMoveNode.meta, bestMoveNode.numSubNodes)
       }).getOrElse(drawMove)
     }
   }

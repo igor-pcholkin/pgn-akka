@@ -60,10 +60,45 @@ class JobWorker extends Actor
       setReceiveTimeout(Duration.Undefined)
 
     case GetMove(prevMoves, master) =>
-      log.info(s"Finding next move")
-      val bestMove = tree.getMove(prevMoves)
-      println(s"Found best move: $bestMove")
-      master ! bestMove
+      pipe (
+        Future {
+          log.info(s"Finding next move")
+          val bestMoveForCurrentRoute = tree.getMove(prevMoves)
+          val bestMove = if (bestMoveForCurrentRoute.move == "DRAW?" && prevMoves.length <= 12) {
+            val altMove = getMoveForAltGameRoutes(prevMoves)
+            if (altMove.move != "DRAW?") {
+              println(s"Found alternative route: ${altMove.gameRoute}")
+            }
+            altMove
+          } else {
+            bestMoveForCurrentRoute
+          }
+          if (bestMove.move != "DRAW?") {
+            println(s"Found best move: $bestMove")
+          }
+          bestMove
+      }) to master
+  }
+
+  def getMoveForAltGameRoutes(prevMoves: Vector[String]) = {
+
+    val whites = (prevMoves.zipWithIndex collect { case (move, i) if i % 2 == 0 => move
+    }).permutations.toStream
+
+    val blacks = (prevMoves.zipWithIndex collect { case (move, i) if i % 2 == 1 => move
+    }).permutations.toStream
+
+    val altGames = for {
+      whiteMoves <- whites
+      blackMoves <- blacks
+    } yield (whiteMoves zipAll (blackMoves, None, None) map { pair =>
+      List(pair._1, pair._2)
+    } flatten) collect { case s: String => s }
+
+    val (altMove, altRoute) = altGames map { altGameRoute =>
+      (tree.getMove(altGameRoute), altGameRoute)
+    } find { case (move, route) => move.move != "DRAW?"} getOrElse(Move("DRAW?"), prevMoves)
+    altMove.copy(gameRoute = Some(altRoute))
   }
 
   def processParsePgnTask(fileNames: Seq[String]): Future[String] = Future {

@@ -13,7 +13,7 @@ import Result._
 
 case class Meta(result: Result, white: String, black: String, eloWhite: Int, eloBlack:Int, chessBase: Option[String] = None)
 case class Game(meta: Meta, moves: List[String])
-case class Move(move: String, meta: Option[Meta] = None)
+case class Move(move: String, meta: Option[Meta] = None, rank: Int = 0, gameRoute: Option[Vector[String]] = None)
 
 
 object Meta {

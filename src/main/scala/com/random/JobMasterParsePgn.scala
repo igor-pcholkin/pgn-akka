@@ -32,6 +32,7 @@ class JobMasterParsePgn extends Actor
   var workGiven = 0
   var workReceived = 0
   var workers = Set[ActorRef]()
+  var parsingComplete = false
 
   val router = createWorkerRouter
 
@@ -44,8 +45,9 @@ class JobMasterParsePgn extends Actor
     case JobParsePgn =>
       pgnFilesWorkParts = Random.shuffle(PgnFiles.fileNames.toList)
       val cancellable = context.system.scheduler.schedule(0 millis, 1000 millis, router, Work(self))
-      context.setReceiveTimeout(10 seconds)
+      context.setReceiveTimeout(30 seconds)
       become(working(sender, cancellable))
+      watch(router)
   }
 
   def working(receptionist: ActorRef,
@@ -80,14 +82,20 @@ class JobMasterParsePgn extends Actor
         completeParsing(receptionist, cancellable)
       }
 
+    case Terminated(actor) =>
+      log.error(s"Actor ${actor.path.name} terminated.")
+
   }
 
   def completeParsing(receptionist: ActorRef,
               cancellable: Cancellable) {
-    cancellable.cancel()
-    setReceiveTimeout(Duration.Undefined)
-    receptionist ! JobParsePgnDone(workers)
-    log.info(s"Parsing complete.")
+    if (!parsingComplete) {
+      parsingComplete = true
+      cancellable.cancel()
+      setReceiveTimeout(Duration.Undefined)
+      receptionist ! JobParsePgnDone(workers)
+      log.info(s"Parsing complete.")
+    }
   }
 
 }

@@ -7,6 +7,7 @@ import akka.actor._
 import akka.cluster.routing._
 import akka.routing._
 import scala.Vector
+import scala.util.Random
 
 object JobMasterAskMove {
   def props(receptionist: ActorRef, workers: Set[ActorRef]) = Props(classOf[JobMasterAskMove], receptionist, workers)
@@ -54,10 +55,11 @@ class JobMasterAskMove(receptionist: ActorRef, val workers: Set[ActorRef]) exten
 
       if (workReceived == workers.size) {
         setReceiveTimeout(Duration.Undefined)
-        val mayBeBestMove = if (moves.length <= 4)
-          nextMoveCandidates.headOption
-        else
+        val mayBeBestMove = if (moves.length <= 4) {
+          Random.shuffle(nextMoveCandidates.toSeq).headOption
+        } else {
           nextMoveCandidates.toSeq.sortBy(_.rank).lastOption
+        }
         val bestMove = mayBeBestMove.getOrElse(Move("DRAW?"))
         log.info(s"Choosing move: $bestMove")
         bestMove.gameRoute match {

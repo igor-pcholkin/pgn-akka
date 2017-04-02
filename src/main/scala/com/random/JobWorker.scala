@@ -64,7 +64,7 @@ class JobWorker extends Actor
         Future {
           log.info(s"Finding next move")
           val bestMoveForCurrentRoute = tree.getMove(prevMoves)
-          val bestMove = if (bestMoveForCurrentRoute.move == "DRAW?" && prevMoves.length <= 12) {
+          val bestMove = if (bestMoveForCurrentRoute.move == "DRAW?" && prevMoves.length <= 10) {
             val altMove = getMoveForAltGameRoutes(prevMoves)
             if (altMove.move != "DRAW?") {
               println(s"Found alternative route: ${altMove.gameRoute}")
